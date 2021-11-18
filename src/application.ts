@@ -1,3 +1,5 @@
+import {AuthenticationComponent, registerAuthenticationStrategy} from '@loopback/authentication';
+import {AuthorizationComponent, AuthorizationTags} from '@loopback/authorization';
 import {BootMixin} from '@loopback/boot';
 import {ApplicationConfig} from '@loopback/core';
 import {RepositoryMixin} from '@loopback/repository';
@@ -7,19 +9,22 @@ import {
   RestExplorerComponent
 } from '@loopback/rest-explorer';
 import {ServiceMixin} from '@loopback/service-proxy';
+import dotenv from 'dotenv';
 import path from 'path';
-import {MySequence} from './sequence';
+import {BasicAuthenticationStrategy} from './authentication';
+import {MyAuthorizationProvider} from './authorization';
+import {MyAuthenticatingSequence} from './sequence';
 
 export {ApplicationConfig};
 
+dotenv.config()
 export class MynodeappApplication extends BootMixin(
   ServiceMixin(RepositoryMixin(RestApplication)),
 ) {
   constructor(options: ApplicationConfig = {}) {
     super(options);
-
     // Set up the custom sequence
-    this.sequence(MySequence);
+    this.sequence(MyAuthenticatingSequence);
 
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));
@@ -28,7 +33,13 @@ export class MynodeappApplication extends BootMixin(
     this.configure(RestExplorerBindings.COMPONENT).to({
       path: '/explorer',
     });
+    registerAuthenticationStrategy(this, BasicAuthenticationStrategy);
     this.component(RestExplorerComponent);
+    this.component(AuthenticationComponent)
+    this.component(AuthorizationComponent)
+    this.bind('authorizationProviders.my-authorizer-provider')
+      .toProvider(MyAuthorizationProvider)
+      .tag(AuthorizationTags.AUTHORIZER);
 
     this.projectRoot = __dirname;
     // Customize @loopback/boot Booter Conventions here
@@ -40,5 +51,6 @@ export class MynodeappApplication extends BootMixin(
         nested: true,
       },
     };
+
   }
 }

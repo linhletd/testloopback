@@ -1,11 +1,20 @@
 import {ApplicationConfig, MynodeappApplication} from './application';
-
+import {RedisDataSource} from './datasources';
+import {SessionRepository} from './repositories';
 export * from './application';
 
 export async function main(options: ApplicationConfig = {}) {
   const app = new MynodeappApplication(options);
   await app.boot();
   await app.start();
+  const redisDatasource = new RedisDataSource()
+  await redisDatasource.connect()
+  const sessionRepository = new SessionRepository(redisDatasource)
+  app.bind('repositories.session').to(sessionRepository)
+
+  // await sessionRepository.set('2', {})
+  // const x = await sessionRepository.get('2')
+  // console.log(x)
 
   const url = app.restServer.url;
   console.log(`Server is running at ${url}`);
